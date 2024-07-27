@@ -1,0 +1,38 @@
+The idea of microtask and macrotask queues is a simplification to help understand the core concept of asynchronous programming. 
+However, to accurately represent the event loop's mechanics, it's essential to understand the "phase-based" approach.
+
+
+Phases: The event loop iterates through different phases, processing tasks in each phase.
+No Explicit Queues: While there aren't strictly defined microtask and macrotask queues, the concept of task priority and execution order still applies.
+Task Prioritization: The phases themselves determine the order in which tasks are executed. For example, timers in the Timers phase have a different priority than I/O operations in the Poll phase.
+
+Each phase has its queue to store callbacks waiting to be executed.
+
+Event Loop Phase:- 
+
+   ┌───────────────────────────┐
+┌─>│           timers          │
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │     pending callbacks     │
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │       idle, prepare       │
+│  └─────────────┬─────────────┘      ┌───────────────┐
+│  ┌─────────────┴─────────────┐      │   incoming:   │
+│  │           poll            │<─────┤  connections, │
+│  └─────────────┬─────────────┘      │   data, etc.  │
+│  ┌─────────────┴─────────────┐      └───────────────┘
+│  │           check           │
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+└──┤      close callbacks      │
+   └───────────────────────────┘
+
+   There are actually seven or eight steps, but the ones we care about — ones that Node.js actually uses - are those above.
+
+In Node.js, an event demultiplexer is a crucial component of its event-driven architecture. It plays a key role in managing multiple I/O operations efficiently. Here’s a breakdown of how it works:
+
+Event Loop: Node.js uses an event loop to handle asynchronous operations. The event loop continuously checks for events and processes them in a non-blocking manner.
+Event Demultiplexer: This component listens for events from various sources (like file systems, network requests, timers, etc.) and queues them for the event loop to process. It essentially acts as a dispatcher, routing events to the appropriate handlers.
+Reactor Pattern: Node.js employs the reactor pattern, where the event demultiplexer waits for events and then dispatches them to the corresponding callback functions12.
