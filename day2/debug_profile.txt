@@ -1,0 +1,148 @@
+Node.js have build in debugger;
+
+When started with the --inspect switch, a Node.js process listens for a debugging client. By default, it will listen at host and port 127.0.0.1:9229. Each process is also assigned a unique UUID.
+
+A minimal CLI debugger is available with node inspect myscript.js. Several commercial and open source tools can also connect to the Node.js Inspector.
+
+
+Visual Studio Code 1.10+
+In the Debug panel, click the settings icon to open .vscode/launch.json. Select "Node.js" for initial setup.
+Choose "Debug > Start Debugging" from the menu or hit F5.
+
+
+Profiling Node.js Applications
+There are many third party tools available for profiling Node.js applications but, in many cases, the easiest option is to use the Node.js built-in profiler. The built-in profiler uses the profiler inside V8 which samples the stack at regular intervals during program execution. 
+
+
+Now assume that we've deployed our application and users are complaining about high latency on requests. 
+We can easily run the app with the built-in profiler:
+
+NODE_ENV=production node --prof app.js
+
+To Generate log file:-
+
+node --prof-process isolate-0xnnnnnnnnnnnn-v8.log > processed.txt
+
+
+Security Best Practices:-
+
+Threat List:-
+1. Denial of Service of HTTP server (CWE-400)
+ HTTP requests are received by the Node.js HTTP server and handed over to the application code via the registered request handler. 
+ The server does not parse the content of the request body. Therefore any DoS caused by the contents of the body after they are handed over to the request handler is not a vulnerability in Node.js itself,
+ since it's the responsibility of the application code to handle it correctly.
+ Ensure that the WebServer handles socket errors properly, for instance, when a server is created without an error handler, it will be vulnerable to DoS
+
+    Mitigations
+    1. Use a reverse proxy to receive and forward requests to the Node.js application. Reverse proxies can provide caching, load balancing, IP blacklisting, etc. which reduce the probability of a DoS attack being effective.
+    2. Correctly configure the server timeouts, so that connections that are idle or where requests are arriving too slowly can be dropped. See the different timeouts in http.Server, particularly headersTimeout, requestTimeout, timeout, and keepAliveTimeout.
+    3. Limit the number of open sockets per host and in total. See the http docs, particularly agent.maxSockets, agent.maxTotalSockets, agent.maxFreeSockets and server.maxRequestsPerSocket
+
+2. DNS Rebinding (CWE-346)
+  This is an attack that can target Node.js applications being run with the debugging inspector enabled using the --inspect switch.
+
+  Since websites opened in a web browser can make WebSocket and HTTP requests, they can target the debugging inspector running locally. This is usually prevented by the same-origin policy implemented by modern browsers, which forbids scripts from reaching resources from different origins (meaning a malicious website cannot read data requested from a local IP address).
+
+ However, through DNS rebinding, an attacker can temporarily control the origin for their requests so that they seem to originate from a local IP address. This is done by controlling both a website and the DNS server used to resolve its IP address. See DNS Rebinding wiki for more details.
+
+    Mitigations
+
+    1. Disable inspector on SIGUSR1 signal by attaching a process.on(‘SIGUSR1’, …) listener to it.
+    2. Do not run the inspector protocol in production.
+
+3. Exposure of Sensitive Information to an Unauthorized Actor (CWE-552)
+    All the files and folders included in the current directory are pushed to the npm registry during the package publication.
+
+    There are some mechanisms to control this behavior by defining a blocklist with .npmignore and .gitignore or by defining an allowlist in the package.json
+    Mitigations
+
+    1. Using npm publish --dry-run to list all the files to publish. Ensure to review the content before publishing the package.
+    2. It’s also important to create and maintain ignore files such as .gitignore and .npmignore. Throughout these files, you can specify which files/folders should not be published. The files property in package.json allows the inverse operation -- allowed list.
+    3. In case of an exposure, make sure to unpublish the package.
+
+4. HTTP Request Smuggling (CWE-444)
+This is an attack that involves two HTTP servers (usually a proxy and a Node.js application). 
+A client sends an HTTP request that goes first through the front-end server (the proxy) and then is redirected to the back-end server (the application). 
+When the front-end and back-end interpret ambiguous HTTP requests differently, there is potential for an attacker to send a malicious message that won't be seen by the front-end but will be seen by the back-end, effectively "smuggling" it past the proxy server.
+ Mitigations
+
+    1. Do not use the insecureHTTPParser option when creating a HTTP Server.
+    2. Configure the front-end server to normalize ambiguous requests.
+    3. Continuously monitor for new HTTP request smuggling vulnerabilities in both Node.js and the front-end server of choice.
+    4. Use HTTP/2 end to end and disable HTTP downgrading if possible.
+
+5. Information Exposure through Timing Attacks (CWE-208)
+ This is an attack that allows the attacker to learn potentially sensitive information by, for example, measuring how long it takes for the application to respond to a request.
+ This attack is not specific to Node.js and can target almost all runtimes.
+
+ Mitigations
+    1. The crypto API exposes a function timingSafeEqual to compare actual and expected sensitive values using a constant-time algorithm.
+    2. For password comparison, you can use the scrypt available also on the native crypto module.
+    3. More generally, avoid using secrets in variable-time operations. This includes branching on secrets and, when the attacker could be co-located on the same infrastructure (e.g., same cloud machine), using a secret as an index into memory. Writing constant-time code in JavaScript is hard (partly because of the JIT). For crypto applications, use the built-in crypto APIs or WebAssembly (for algorithms not implemented in natively).
+
+6. Malicious Third-Party Modules (CWE-1357):
+    Currently, in Node.js, any package can access powerful resources such as network access. Furthermore, because they also have access to the file system, they can send any data anywhere.
+    All code running into a node process has the ability to load and run additional arbitrary code by using eval()(or its equivalents). All code with file system write access may achieve the same thing by writing to new or existing files that are loaded.
+ Mitigations:
+    1. Before installing a package make sure that this package is maintained and includes all the content you expected. Be careful, the GitHub source code is not always the same as the published one, validate it in the node_modules.
+7. Supply chain attacks:- 
+    A supply chain attack on a Node.js application happens when one of its dependencies (either direct or transitive) are compromised. This can happen either due to the application being too lax on the specification of the dependencies (allowing for unwanted updates) and/or common typos in the specification (vulnerable to typosquatting).
+
+    Possible attack vectors:
+    Typosquatting attacks
+    Lockfile poisoning
+    Compromised maintainers
+    Malicious Packages
+    Dependency Confusions
+
+    Mitigations:-
+    1 Prevent npm from executing arbitrary scripts with --ignore-scripts
+    2 Additionally, you can disable it globally with npm config set ignore-scripts true
+    3 Pin dependency versions to a specific immutable version, not a version that is a range or from a mutable source.
+    4 Use lockfiles, which pin every dependency (direct and transitive).
+    5 Use Mitigations for lockfile poisoning.
+    6 Automate checks for new vulnerabilities using CI, with tools like [npm-audit][].
+    7 Tools such as Socket can be used to analyze packages with static analysis to find risky behaviors such as network or filesystem access.
+    8 Use npm ci instead of npm install. This enforces the lockfile so that inconsistencies between it and the package.json file causes an error (instead of silently ignoring the lockfile in favor of package.json).
+    9 Carefully check the package.json file for errors/typos in the names of the dependencies.
+
+8. Memory Access Violation (CWE-284):
+    Memory-based or heap-based attacks depend on a combination of memory management errors and an exploitable memory allocator. Like all runtimes, Node.js is vulnerable to these attacks if your projects run on a shared machine. Using a secure heap is useful for preventing sensitive information from leaking due to pointer overruns and underruns.
+    Unfortunately, a secure heap is not available on Windows. More information can be found on Node.js secure-heap documentation.
+    
+    Mitigations
+    1 Use --secure-heap=n depending on your application where n is the allocated maximum byte size.
+    2 Do not run your production app on a shared machin2.
+
+9. Monkey Patching (CWE-349)
+    Monkey patching refers to the modification of properties in runtime aiming to change the existing behavior
+    
+    Mitigations
+    1. The --frozen-intrinsics flag enables experimental¹ frozen intrinsics, which means all the built-in JavaScript objects and functions are recursively frozen
+
+10. Prototype Pollution Attacks (CWE-1321)
+    Prototype pollution refers to the possibility of modifying or injecting properties into Javascript language items by abusing the usage of __proto_, _constructor, prototype, and other properties inherited from built-in prototypes
+
+    Mitigations
+    1 Avoid insecure recursive merges, see CVE-2018-16487.
+    2 Implement JSON Schema validations for external/untrusted requests.
+    3 Create Objects without prototype by using Object.create(null).
+    4 Freezing the prototype: Object.freeze(MyObject.prototype).
+    5 Disable the Object.prototype.__proto__ property using --disable-proto flag.
+    6 Check that the property exists directly on the object, not from the prototype using Object.hasOwn(obj, keyFromObj).
+    7 Avoid using methods from Object.prototype.
+
+11. Uncontrolled Search Path Element (CWE-427)
+    By that, it means the following application behavior is expected. Assuming the following directory structure:
+
+    app/
+        server.js
+        auth.js
+        auth
+
+    If server.js uses require('./auth') it will follow the module resolution algorithm and load auth instead of auth.js.
+
+    Mitigations
+    1. Using the experimental¹ policy mechanism with integrity checking can avoid the above threat. For the directory described above, one can use the following policy.json
+
+    More details: https://nodejs.org/en/learn/getting-started/security-best-practices
