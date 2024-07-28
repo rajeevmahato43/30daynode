@@ -1,6 +1,54 @@
+#Thread is the smallest unit of execution within a process. Think of it as a single sequence of instructions that the CPU can execute. 
+Threads are often referred to as “lightweight processes” because they share the same resources, such as memory, with other threads within the same process
+#Threads run in processes; one process can have many threads in it, and as they are in same process, they share a memory.
+threads = total virtual memory / (stack size 10241024);
+
+Node.js has a V8 in it, and the code runs in the main thread where event-loop runs ( that’s why we say that it is single-threaded).
+
+But As we know, the Node.js is not just V8. There are many APIs (C++), and all this stuff is managed by Event Loop, implemented via libuv (C++).
+C++ is working in back of JavaScript code and it has access to threads. 
+
+If you run the JavaScript synchronous method which has been called from Node.js, it will always run in the main thread. 
+But if you run some asynchronous thing, it will not always run in the main thread: depending on what method you use, the event-loop can route it to one of the APIs and it can be processed in another thread.
+
+Node.js uses a pre-allocated set of threads called a thread pool, 
+and if we do not specify how many threads to open, it will open 4 threads by default. 
+
+We can increase it by setting
+UV_THREADPOOL_SIZE=110 && node index.js
+or
+process.env.UV_THREADPOOL_SIZE=62 from code.
+
+
+Worker Threads
+Purpose: Worker threads are used to run JavaScript code in parallel on multiple threads. This is particularly useful for CPU-intensive tasks.
+Memory: Worker threads share the same memory space, which allows for efficient data sharing between threads.
+Communication: They communicate with the main thread using message passing.
+Use Case: Ideal for tasks that require heavy computation without blocking the main event loop.
+
+Child Processes
+Purpose: Child processes are separate instances of the Node.js runtime. They can run scripts independently of the parent process.
+Memory: Each child process has its own memory space, which means they do not share memory with the parent process.
+Communication: Communication between the parent and child processes is done through inter-process communication (IPC) channels.
+Use Case: Suitable for tasks that need to be isolated from the main process, such as running a separate application or script.
+
+
+Increasing Thread Pool Size:-
+Increasing the thread pool size can improve the performance of I/O-bound tasks, such as file system operations, DNS lookups, and network requests.
+Applications that perform a lot of I/O operations, such as file servers or database clients, can benefit from a larger thread pool.
+
+
+Increasing Worker Threads:-
+Applications that perform heavy computations, such as data processing, image manipulation, or complex calculations, can benefit from additional worker threads.
+
+
+Increasing Child Processes:-
+Running separate applications or scripts that need to be isolated from the main process, such as microservices or background tasks.
+
+
+
 The idea of microtask and macrotask queues is a simplification to help understand the core concept of asynchronous programming. 
 However, to accurately represent the event loop's mechanics, it's essential to understand the "phase-based" approach.
-
 
 Phases: The event loop iterates through different phases, processing tasks in each phase.
 No Explicit Queues: While there aren't strictly defined microtask and macrotask queues, the concept of task priority and execution order still applies.
@@ -36,3 +84,145 @@ In Node.js, an event demultiplexer is a crucial component of its event-driven ar
 Event Loop: Node.js uses an event loop to handle asynchronous operations. The event loop continuously checks for events and processes them in a non-blocking manner.
 Event Demultiplexer: This component listens for events from various sources (like file systems, network requests, timers, etc.) and queues them for the event loop to process. It essentially acts as a dispatcher, routing events to the appropriate handlers.
 Reactor Pattern: Node.js employs the reactor pattern, where the event demultiplexer waits for events and then dispatches them to the corresponding callback functions12.
+
+
+
+Microtask Queue: Processed before each event loop iteration.
+process.nextTick() is not technically part of the event loop. Instead, the nextTickQueue will be processed after the current operation is completed, 
+regardless of the current phase of the event loop. Here, an operation is defined as a transition from the underlying C/C++ handler, and handling the JavaScript that needs to be executed.
+
+The Six Phases of Event Loop:-
+1. Timers Phase
+    Handles callbacks for timers set with setTimeout and setInterval.
+    These timers are based on a minimum delay, not guaranteed execution time.
+    The phase checks if any timers have expired and executes their callbacks.
+    If no timers are ready, the event loop moves to the next phase.
+2. Pending Callbacks Phase
+    Handles callbacks for some specific system events.
+    These are typically low-level callbacks related to system operations, not directly accessible to user code.
+    This phase is often short-lived and quickly moves to the next phase.
+3. Idle, Prepare
+    These phases are primarily internal to Node.js and handle the core mechanics of the event loop.
+        a. Idle: Indicates that the event loop is waiting for new events.
+        b. Prepare: Prepares for the Poll phase.
+4. Poll:
+    Looks for new I/O events (network requests, file system operations).
+    If there are pending I/O events, some are processed, and others are deferred to the next iteration.
+    If no pending I/O events, the event loop can be blocked until a new event arrives or a timer expires.
+5. Check Phase
+    Executes callbacks set with setImmediate.
+    These callbacks are typically executed after I/O events, but before the next tick of the event loop.
+6. Close Callbacks Phase
+    Processes callbacks for events related to closing resources, such as sockets or handles.
+    This phase ensures proper cleanup and resource deallocation.
+
+
+Key Points:
+The event loop iterates through these phases continuously.
+Each phase has its own queue of callbacks.
+The order of execution of callbacks within each phase can affect the behavior of your application.
+The event loop can be blocked in the Poll phase if there are no pending I/O events.
+process.nextTick() callback pushed into Microtask queue with high priority
+Microtask Queue: Processed based on high priority before each event loop iteration.
+
+
+const fs = require('fs');
+
+console.log('Script start');
+
+setTimeout(() => {
+  console.log('Timer 1');
+}, 0);
+
+setImmediate(() => {
+  console.log('Immediate 1');
+});
+
+fs.readFile('nonexistentfile.txt', (err) => {
+  if (err) {
+    console.error('Error:', err);
+  } else {
+    console.log('File content:', data);
+  }
+});
+
+setTimeout(() => {
+  console.log('Timer 2');
+}, 0);
+
+setImmediate(() => {
+  console.log('Immediate 2');
+});
+
+console.log('Script end');
+
+
+// output would be
+Script start
+Script end
+Timer 1
+Timer 2
+Error // as file not found
+Immediate 1
+Immediate 2
+
+Explanation::- 
+Timers Phase: The two setTimeout calls will be placed in the timers phase. However, since the delay is 0, they might execute immediately or slightly later.
+Immediate Phase: The two setImmediate calls will be placed in the check phase.
+Poll Phase: The fs.readFile operation will involve the poll phase. Since the file doesn't exist, it will likely trigger an error callback.
+Close Callbacks Phase: If there were any resources to close (like sockets), their close callbacks would be handled here.
+
+Timing: setTimeout has a delay, while setImmediate executes after the current poll phase.
+Priority: setImmediate generally has higher priority than setTimeout.
+Use Cases:
+setTimeout is suitable for tasks that need to be delayed for a specific duration.
+setImmediate is useful for tasks that need to be executed as soon as possible after the current I/O operations.
+Important Note: While setImmediate is generally executed before setTimeout, the exact order might vary depending on the system load and other factors.
+
+The order in which the timers are executed will vary depending on the context in which they are called. If both are called from within the main module, 
+then timing will be bound by the performance of the process (which can be impacted by other applications running on the machine).
+
+For example, if we run the following script which is not within an I/O cycle (i.e. the main module), 
+the order in which the two timers are executed is non-deterministic, as it is bound by the performance of the process:
+// timeout_vs_immediate.js
+setTimeout(() => {
+  console.log('timeout');
+}, 0);
+setImmediate(() => {
+  console.log('immediate');
+});
+
+However, if you move the two calls within an I/O cycle, the immediate callback is always executed first:
+
+const fs = require('node:fs');
+fs.readFile(__filename, () => {
+  setTimeout(() => {
+    console.log('timeout');
+  }, 0);
+  setImmediate(() => {
+    console.log('immediate');
+  });
+});
+
+
+
+Node Execution Steps:-
+1. Initialization: Node.js initializes core components like V8, libuv, and the event loop.
+2. Code Parsing and Compilation: V8 parses and compiles the JavaScript code into machine code.
+3. Memory Allocation: The V8 engine allocates memory for variables, objects, and functions on the heap.
+4. Call Stack: Function calls are placed on the call stack.
+5. Code Execution: V8 executes code from the top of the call stack.
+     a. Synchronous Code: Executed directly by V8.
+     b. Asynchronous Code: When encountering asynchronous operations (identified by function signatures or specific modules), Node.js delegates the task to libuv.
+     c. Node.js Intercepts: Node.js, acting as a bridge between V8 and the underlying system, intercepts this function call.
+     d. Delegation to libuv: Node.js delegates the asynchronous operation to libuv, a C library that provides asynchronous I/O capabilities.
+6. libuv and Asynchronous Operations: libuv handles asynchronous operations, often using a thread pool for CPU-bound tasks or leveraging the OS for I/O-bound operations.
+    a. Event Registration: The operation is registered with the demultiplexer.
+    b. Event Monitoring: The demultiplexer monitors for completion of the registered operations.
+    c. Callback Notification: When an operation finishes, the demultiplexer notifies the event loop, and the corresponding callback is added to the event queue.
+7. Event Loop: Continuously checks for pending tasks in Microtask Queue and Different phases (timers, I/O, etc.). Microtasks are executed before each phase execution.
+8. Callback Execution: When the event loop processes a callback, it's pushed onto the call stack, and V8 executes it.
+
+
+
+A third-party tool Wasmtime can be used to access this functionality of OS. Wasmtime utilizes the WASI API to access the OS functionality
