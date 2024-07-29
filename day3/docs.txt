@@ -1,0 +1,39 @@
+Regular expression is a sequence of character use to find the patter and validate the patter in a string;
+
+Two way to create regular expression;
+
+1. 
+
+const regex= /aA/;
+
+2. 
+
+const regex= new RegExp("aA")
+
+
+Metacharacters: Characters with special meanings, such as 
+. (matches any character), 
+^ (matches the beginning of a string), 
+$ (matches the end of a string), 
+* (matches zero or more occurrences), 
++ (matches one or more occurrences), 
+? (matches zero or one occurrence), 
+\d (matches a digit), 
+\w (matches a word character), 
+\s (matches whitespace)
+
+email pattern /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+^: Ensures that the email address starts at the beginning of the string.
+[^\s@]+: Matches the local part of the email address (the part before the @ symbol). It must contain at least one character and cannot contain whitespace or @ symbols.
+@: Matches the literal @ symbol, separating the local part from the domain.
+[^\s@]+: Matches the domain name part of the email address. Similar to the local part, it must contain at least one character and cannot contain whitespace or @ symbols.
+.: Matches the literal period separating the domain name from the top-level domain.
+[^\s@]+: Matches the top-level domain (e.g., .com, .net, .org).
+$: Ensures that the email address ends at the end of the string.
+
+Regex Modifiers: g, m, and i
+
+g: Finds all matches within a string, rather than stopping at the first match.
+m: When working with multiline strings and you want to match patterns at the beginning or end of lines.
+i: When you don't care about the case of the characters in the pattern.
