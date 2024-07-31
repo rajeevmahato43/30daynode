@@ -28,7 +28,7 @@ fs.mkdirSync
 
 // delete file
 fs.unlink
-fs. unlinkSync
+fs.unlinkSync
 
 // delete dir
 fs.rmdir

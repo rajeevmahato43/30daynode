@@ -1,6 +1,7 @@
 Node.js have build in debugger;
 
-When started with the --inspect switch, a Node.js process listens for a debugging client. By default, it will listen at host and port 127.0.0.1:9229. Each process is also assigned a unique UUID.
+When started with the --inspect switch, a Node.js process listens for a debugging client.
+ By default, it will listen at host and port 127.0.0.1:9229. Each process is also assigned a unique UUID.
 
 A minimal CLI debugger is available with node inspect myscript.js. Several commercial and open source tools can also connect to the Node.js Inspector.
 
@@ -11,7 +12,8 @@ Choose "Debug > Start Debugging" from the menu or hit F5.
 
 
 Profiling Node.js Applications
-There are many third party tools available for profiling Node.js applications but, in many cases, the easiest option is to use the Node.js built-in profiler. The built-in profiler uses the profiler inside V8 which samples the stack at regular intervals during program execution. 
+There are many third party tools available for profiling Node.js applications but, in many cases, the easiest option is to use the Node.js built-in profiler. 
+The built-in profiler uses the profiler inside V8 which samples the stack at regular intervals during program execution. 
 
 
 Now assume that we've deployed our application and users are complaining about high latency on requests. 
@@ -41,9 +43,12 @@ Threat List:-
 2. DNS Rebinding (CWE-346)
   This is an attack that can target Node.js applications being run with the debugging inspector enabled using the --inspect switch.
 
-  Since websites opened in a web browser can make WebSocket and HTTP requests, they can target the debugging inspector running locally. This is usually prevented by the same-origin policy implemented by modern browsers, which forbids scripts from reaching resources from different origins (meaning a malicious website cannot read data requested from a local IP address).
+  Since websites opened in a web browser can make WebSocket and HTTP requests, they can target the debugging inspector running locally. 
+  This is usually prevented by the same-origin policy implemented by modern browsers, which forbids scripts from reaching resources from different origins 
+  (meaning a malicious website cannot read data requested from a local IP address).
 
- However, through DNS rebinding, an attacker can temporarily control the origin for their requests so that they seem to originate from a local IP address. This is done by controlling both a website and the DNS server used to resolve its IP address. See DNS Rebinding wiki for more details.
+ However, through DNS rebinding, an attacker can temporarily control the origin for their requests so that they seem to originate from a local IP address. 
+ This is done by controlling both a website and the DNS server used to resolve its IP address. See DNS Rebinding wiki for more details.
 
     Mitigations
 
@@ -85,6 +90,7 @@ When the front-end and back-end interpret ambiguous HTTP requests differently, t
     All code running into a node process has the ability to load and run additional arbitrary code by using eval()(or its equivalents). All code with file system write access may achieve the same thing by writing to new or existing files that are loaded.
  Mitigations:
     1. Before installing a package make sure that this package is maintained and includes all the content you expected. Be careful, the GitHub source code is not always the same as the published one, validate it in the node_modules.
+
 7. Supply chain attacks:- 
     A supply chain attack on a Node.js application happens when one of its dependencies (either direct or transitive) are compromised. This can happen either due to the application being too lax on the specification of the dependencies (allowing for unwanted updates) and/or common typos in the specification (vulnerable to typosquatting).
 
