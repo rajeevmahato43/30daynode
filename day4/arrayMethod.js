@@ -1,8 +1,12 @@
 // Array creation
-let arr1 = [1, 2, 3, 4, 5];
+let arr1 = [1, 2, 3, 4, 5]; // dense array=> full array
 let arr2 = new Array(3)  // block the size of array to 3 // sparse array
 // get length of array
 console.log(arr2.length)
+
+// check array type 
+Array.isArray(arr1); // true 
+
 for (const iterator in arr2) {
     console.log("value " + iterator)  // it will not print 
     // loop iterates over the enumerable properties of an object. In the case of an empty array, there are no properties to iterate over.

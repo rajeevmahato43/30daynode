@@ -1,0 +1,48 @@
+NPM stands for node package manager. It is a package manager for node.js applications. 
+It helps you to install , update, remove and publish packages
+
+
+Updating NPM
+  npm install npm@latest -g
+
+We can check the version by running the following command 
+    npm -v
+
+What is package.json
+    package.json is a way to manage the locally installed packages.
+    package.json serves as documentation on which our project depends.
+    It is kind of a directory which keeps track of all the dependencies our project is using.
+    It allows us to specify the versions of packages our project is using. This is achieved using semantic versioning rules
+
+Create package.json
+    npm init / npm init -y
+
+Installing packages
+    Locally
+        npm i express
+    Globally
+        npm i express -g
+
+installing specific version of a package
+        npm i express@4.4.1
+    You don't Know the exact version
+        npm i express@^4.0.0
+
+
+Updating local packages
+    npm update  # for all
+
+Updating global packages
+    npm install -g packagename
+    npm update -g
+
+Finding  outdated packages
+    npm outdated
+    npm outdated -g --depth=0
+
+Removing a Package
+    npm uninstall packagename
+
+remove/add the file from package.json
+ npm i --save or npm uninstall --save 
+

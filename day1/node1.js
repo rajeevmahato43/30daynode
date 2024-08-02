@@ -43,12 +43,12 @@ setTimeout(() => {
 setImmediate(() => {
   console.log('Immediate 2');
   Promise. resolve() .then(()=>{
-    console.log("Promise 2")
+    console.log("Promise Immediate")
   })
 });
 
 
-fs.readFile("./index.html", (err) => {
+fs.readFile("./index1.html", (err) => {
   if(err) console.log(err);
   setTimeout(() => {
     console.log('timeout 4');
@@ -56,6 +56,9 @@ fs.readFile("./index.html", (err) => {
   setImmediate(() => {
     console.log('immediate 4');
   });
+});
+setImmediate(() => {
+  console.log('Immediate after');
 });
 
 setTimeout(() => {
