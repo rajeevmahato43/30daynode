@@ -1,0 +1,125 @@
+Node.js Process Management: A Comprehensive Guide
+Introduction
+Node.js offers various mechanisms for managing processes, 
+each with its specific use cases and trade-offs. 
+
+Let's delve into the details of each:
+process.env.UV_THREADPOOL_SIZE
+
+What is it? 
+    An environment variable that controls the number of threads in the underlying libuv thread pool used for asynchronous I/O operations.
+When to use it?
+    For deep performance tuning.
+    When you have a thorough understanding of your application's I/O patterns.
+Caution: Incorrectly setting this value can negatively impact performance.
+
+
+Cluster Module
+What is it? 
+    A built-in Node.js module for creating child processes that share the same port.
+When to use it?
+    For load balancing across multiple CPU cores in a single machine.
+    For web servers handling high traffic.
+How it works:
+    Master process forks worker processes.
+    Load balancing is handled automatically.
+    IPC (Inter-Process Communication) is used for communication.
+
+
+Child Process Module
+What is it? 
+    Provides methods for spawning child processes.
+When to use it?
+    For creating child processes with specific needs.
+    For executing external commands.
+    For running separate Node.js instances.
+Methods:
+    1. spawn: Creates a child process to execute a command. parallel another process
+    2. fork: Creates a child Node.js process with IPC communication.It's shared same memory
+    3. exec: Executes a command and buffers the output.
+    4. execFile: Executes a file directly without spawning a shell.
+
+Worker Threads
+What is it? 
+    A mechanism for creating isolated JavaScript execution contexts within a single process.
+When to use it?
+    For CPU-intensive tasks that can benefit from parallel execution.
+How it works:
+    Shares the same memory space, improving performance for certain tasks.
+    Communicates with the main thread using a message-based system.
+
+//Summary 
+
+Worker Threads: 
+    Best for CPU-bound tasks with shared memory.
+Child Processes: 
+    Good for isolated tasks that need separate memory.
+Clusters: 
+    Ideal for scaling web servers to handle more traffic.
+process.env.UV_THREADPOOL_SIZE: 
+     Useful for I/O-intensive tasks that rely on the thread pool, such as file system operations.
+
+
+
+
+// Thread pool
+
+process.env.UV_THREADPOOL_SIZE=100;
+
+
+// cluster
+
+const cluster = require('cluster');
+const http = require('http');
+const numCPUs = require('os').cpus().length;
+
+if (cluster.isMaster) {
+  console.log(`Master cluster setting up ${numCPUs} workers`);
+
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork();
+  }
+
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`worker ${worker.process.pid} died`);
+  });
+} else {
+  http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('Hello from worker ' + cluster.worker.id);
+  }).listen(8000);
+}
+
+
+// child_process
+
+const { spawn } = require('child_process');
+const ls = spawn('ls', ['-lh', '/']);
+
+ls.stdout.on('data', (data) => {
+  console.log(`stdout: ${data}`);
+});
+
+ls.stderr.on('data', (data) => {
+  console.error(`stderr: ${data}`);
+});
+
+ls.on('close', (code) => {
+  console.log(`child process exited with code ${code}`);
+});
+
+
+// worker_threads
+
+const { Worker, isMainThread } = require('worker_threads');
+
+if (isMainThread) {
+  const worker = new Worker('./worker.js', { workerData: { someData: 'hello' } });
+
+  worker.on('message', (message) => {
+    console.log('Message from worker:', message);
+  });
+} else {
+  console.log('Worker data:', workerData);
+  parentPort.postMessage('Hello from worker!');
+}

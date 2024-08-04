@@ -1,3 +1,9 @@
+function a(x){
+    console.log("Hello",x);
+}
+a`hi`;  // Another way to call a function
+
+
 // Array creation
 let arr1 = [1, 2, 3, 4, 5]; // dense array=> full array
 let arr2 = new Array(3)  // block the size of array to 3 // sparse array
